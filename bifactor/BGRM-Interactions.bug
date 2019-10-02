@@ -1,0 +1,41 @@
+model
+{
+	for (j in 1:n) { ## Persons
+	    
+	    for (m in 1:nItems) { ## Items
+	    	dat[j,m] ~ dcat(prob[j,m,1:K])
+
+		for (d in 1:D) { ## All Dimensions
+	           	pdim[j,m,d] <- beta1[m,d]*theta[j,d] + beta2[m,d]*theta[j,1]*theta[j,d]
+	        }
+
+	    	for(k in 1:(K-1)) {
+	        	probit(P[j,m,k]) <- (sum(pdim[j,m,1:D]) + beta0[m, k])
+		}
+		P[j,m,K] <- 1.0
+
+		prob[j,m,1] <- P[j,m,1]
+		for(k in 2:K){
+			prob[j,m,k] <- P[j,m,k] - P[j,m,(k-1)]
+		}
+  	     }
+
+		theta[j,1:D] ~ dmnorm(mu, SIG)  ## Theta priors
+	}
+
+
+	for (m in 1:nItems){
+		for(k in 1:(K-1)){
+			k_star[m,k] ~ dnorm(0,1)  ## Threshold priors
+		}
+		beta0[m, 1:(K-1)] <- sort(k_star[m, 1:(K-1)])
+		
+		for(d in 1:D){  ## Main effects and Interactions Priors
+			b_star[m,d] ~ dnorm(0,1) T(0,)
+			beta1[m,d] <- designMain[m,d]*b_star[m,d]
+
+			x_star[m,d] ~ dnorm(0,1)
+			beta2[m,d] <- designInt[m,d]*x_star[m,d]
+		}
+	}	
+}
